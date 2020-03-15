@@ -9,6 +9,8 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.*;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -80,6 +82,24 @@ class ClientRiskIntegrationTest {
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
     }
 
+    @Test
+    public void successMerge() {
+        final Long id1 = assertCreateSuccess();
+        final Long id2 = assertCreateSuccess();
+        final Long id3 = assertCreateSuccess();
+        final Long id4 = assertCreateSuccess();
+        restUpdate(id1, RiskProfile.LOW);
+        restUpdate(id2, RiskProfile.HIGH);
+        restUpdate(id3, RiskProfile.LOW);
+        restUpdate(id4, RiskProfile.NORMAL);
+
+        final ResponseEntity<String> result = restMerge(id3, List.of(id4, id2));
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+
+        final ResponseEntity<RiskProfile> response = sure(restValue(id3));
+        assertEquals(RiskProfile.HIGH, response.getBody());
+    }
+
     private Long assertCreateSuccess() {
         ResponseEntity<Long> result = restCreate();
         assertNotNull(result);
@@ -113,6 +133,16 @@ class ClientRiskIntegrationTest {
         final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         final HttpEntity<RiskProfile> httpEntity = new HttpEntity<>(riskProfile, headers);
+        return sure(restTemplate.exchange(
+                url, HttpMethod.POST,
+                httpEntity, String.class));
+    }
+
+    private ResponseEntity<String> restMerge(Long id, List<Long> merging) {
+        final String url = getClientUrl(id) + "/merge";
+        final HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        final HttpEntity<List<Long>> httpEntity = new HttpEntity<>(merging, headers);
         return sure(restTemplate.exchange(
                 url, HttpMethod.POST,
                 httpEntity, String.class));

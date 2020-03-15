@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
 @RestController
 @RequestMapping("/v1/risk/profiles")
 public class ClientRiskController {
@@ -52,6 +54,16 @@ public class ClientRiskController {
             return ResponseEntity.badRequest().build();
         }
         final OperationResult result = riskRepository.delete(id);
+        return response(result);
+    }
+
+    @PostMapping("/{id}/merge")
+    public Object merge(@PathVariable Long id,
+                        @RequestBody Set<Long> merging) {
+        if (id == null || merging == null || merging.isEmpty() || merging.contains(id)) {
+            return ResponseEntity.badRequest().build();
+        }
+        final OperationResult result = riskRepository.merge(id, merging);
         return response(result);
     }
 
