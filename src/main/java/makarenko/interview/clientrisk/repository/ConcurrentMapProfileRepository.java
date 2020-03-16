@@ -4,23 +4,24 @@ import makarenko.interview.clientrisk.RiskProfile;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-
 @Repository
-public class SynchronizedProfileRepository implements RiskProfileRepository {
+public class ConcurrentMapProfileRepository implements RiskProfileRepository {
     private final AtomicLong idNext = new AtomicLong(0);
     private final Map<Long, RiskProfile> profiles = new ConcurrentHashMap<>();
 
     @Override
-    public OperationResult merge(long id, Set<Long> merging) {
+    public OperationResult merge(long id, Set<Long> mergingInput) {
         final RiskProfile existing = profiles.get(id);
         if (existing == null) {
             return OperationResult.NotFound;
         }
+        final HashSet<Long> merging = new HashSet<>(mergingInput);
         merging.remove(id);
         for (Long merge : merging) {
             final RiskProfile profile = profiles.get(merge);
@@ -43,7 +44,7 @@ public class SynchronizedProfileRepository implements RiskProfileRepository {
                 if (profile == null) {
                     return OperationResult.NotFound;
                 }
-                if (max.compareTo(removed) < 0) {
+                if (removed != null && max.compareTo(removed) < 0) {
                     max = removed;
                 }
             }
